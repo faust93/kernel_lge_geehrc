@@ -206,6 +206,14 @@ config CPU_FREQ_GOV_INTERACTIVE
 
 	  If in doubt, say N.
 
+config CPU_FREQ_GOV_SMARTMAX_GEEB
+	bool "'smartmax' for geeb"
+	depends on CPU_FREQ_GOV_SMARTMAX
+
+config CPU_FREQ_GOV_SMARTMAX_M7
+	bool "'smartmax' defaults for m7"
+	depends on CPU_FREQ_GOV_SMARTMAX
+
 config CPU_FREQ_GOV_CONSERVATIVE
 	tristate "'conservative' cpufreq governor"
 	depends on CPU_FREQ
