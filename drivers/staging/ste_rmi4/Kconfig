@@ -1,5 +1,5 @@
 config TOUCHSCREEN_SYNAPTICS_I2C_RMI4
-	tristate "Synaptics i2c rmi4 touchscreen"
+	bool "Synaptics i2c rmi4 touchscreen"
 	depends on I2C && INPUT
 	help
 	  Say Y here if you have a Synaptics RMI4 and
