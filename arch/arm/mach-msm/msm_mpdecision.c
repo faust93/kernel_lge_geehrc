@@ -43,16 +43,16 @@
 #define DEBUG 0
 
 #define MPDEC_TAG                       "[MPDEC]: "
-#define MSM_MPDEC_STARTDELAY            20000
-#define MSM_MPDEC_DELAY                 130
+#define MSM_MPDEC_STARTDELAY            15000
+#define MSM_MPDEC_DELAY                 125
 #define MSM_MPDEC_PAUSE                 10000
-#define MSM_MPDEC_IDLE_FREQ             486000
+#define MSM_MPDEC_IDLE_FREQ             540000
 #ifdef CONFIG_MSM_MPDEC_INPUTBOOST_CPUMIN
 #define MSM_MPDEC_BOOSTTIME             1000
-#define MSM_MPDEC_BOOSTFREQ_CPU0        918000
-#define MSM_MPDEC_BOOSTFREQ_CPU1        918000
-#define MSM_MPDEC_BOOSTFREQ_CPU2        702000
-#define MSM_MPDEC_BOOSTFREQ_CPU3        594000
+#define MSM_MPDEC_BOOSTFREQ_CPU0        1026000
+#define MSM_MPDEC_BOOSTFREQ_CPU1        1026000
+#define MSM_MPDEC_BOOSTFREQ_CPU2        384000
+#define MSM_MPDEC_BOOSTFREQ_CPU3        384000
 #endif
 
 enum {
