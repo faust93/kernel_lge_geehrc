@@ -177,6 +177,7 @@ struct snd_compr_audio_info {
 						struct snd_compr_codec_caps)
 #define SNDRV_COMPRESS_SET_PARAMS	_IOW('C', 0x12, struct snd_compr_params)
 #define SNDRV_COMPRESS_GET_PARAMS	_IOR('C', 0x13, struct snd_codec)
+#define SNDRV_COMPRESS_METADATA_MODE    _IOW('C', 0x99, bool)
 #define SNDRV_COMPRESS_SET_METADATA	_IOW('C', 0x14,\
 						 struct snd_compr_metadata)
 #define SNDRV_COMPRESS_GET_METADATA	_IOWR('C', 0x15,\
