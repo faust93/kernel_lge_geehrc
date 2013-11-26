@@ -1373,6 +1373,8 @@ eHalStatus sme_UpdateConfig(tHalHandle hHal, tpSmeConfigParams pSmeConfigParams)
                    "Could not pass on WNI_CFG_SCAN_IN_POWERSAVE to CCM");
        }
    }
+   pMac->isCoalesingInIBSSAllowed =
+         pSmeConfigParams->csrConfig.isCoalesingInIBSSAllowed;
    return status;
 }
 
@@ -2219,6 +2221,7 @@ v_VOID_t sme_FreeMsg( tHalHandle hHal, vos_msg_t* pMsg )
 
   This is a synchronous call
   \param hHal - The handle returned by macOpen
+  \param tHalStopType - reason for stopping
 
   \return eHAL_STATUS_SUCCESS - SME is stopped.
 
@@ -2227,7 +2230,7 @@ v_VOID_t sme_FreeMsg( tHalHandle hHal, vos_msg_t* pMsg )
   \sa
 
   --------------------------------------------------------------------------*/
-eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag)
+eHalStatus sme_Stop(tHalHandle hHal, tHalStopType stopType)
 {
    eHalStatus status = eHAL_STATUS_FAILURE;
    eHalStatus fail_status = eHAL_STATUS_SUCCESS;
@@ -2242,17 +2245,14 @@ eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag)
 
    p2pStop(hHal);
 
-   if(pmcFlag)
-   {
-      status = pmcStop(hHal);
-      if ( ! HAL_STATUS_SUCCESS( status ) ) {
-         smsLog( pMac, LOGE, "pmcStop failed during smeStop with status=%d",
-                 status );
-         fail_status = status;
-      }
+   status = pmcStop(hHal);
+   if ( ! HAL_STATUS_SUCCESS( status ) ) {
+      smsLog( pMac, LOGE, "pmcStop failed during smeStop with status=%d",
+              status );
+      fail_status = status;
    }
 
-   status = csrStop(pMac);
+   status = csrStop(pMac, stopType);
    if ( ! HAL_STATUS_SUCCESS( status ) ) {
       smsLog( pMac, LOGE, "csrStop failed during smeStop with status=%d",
               status );
@@ -4829,6 +4829,18 @@ eHalStatus sme_ChangeCountryCode( tHalHandle hHal,
    if ( HAL_STATUS_SUCCESS( status ) )
    {
       smsLog(pMac, LOG1, FL(" called"));
+
+      if ((csrGetInfraSessionId(pMac) != -1) &&
+          (!pMac->roam.configParam.fSupplicantCountryCodeHasPriority))
+      {
+
+          smsLog(pMac, LOGW, "Set Country Code Fail since the STA is associated and userspace does not have priority ");
+
+	  sme_ReleaseGlobalLock( &pMac->sme );
+          status = eHAL_STATUS_FAILURE;
+          return status;
+      }
+
       pMsg = vos_mem_malloc(sizeof(tAniChangeCountryCodeReq));
       if ( NULL == pMsg )
       {
@@ -7201,6 +7213,22 @@ eHalStatus sme_HandleChangeCountryCodeByUser(tpAniSirGlobal pMac,
                VOS_COUNTRY_CODE_LEN) == 0)
     {
         is11dCountry = VOS_TRUE;
+    }
+
+    if ((!is11dCountry) && (!pMac->roam.configParam.fSupplicantCountryCodeHasPriority) &&
+        (csrGetInfraSessionId(pMac) != -1 ))
+    {
+
+        smsLog( pMac, LOGW, FL(" incorrect country being set, nullify this request"));
+
+        /* we have got a request for a country that should not have been added since the
+           STA is associated; nullify this request */
+        status = csrGetRegulatoryDomainForCountry(pMac,
+                                                  pMac->scan.countryCode11d,
+                                                  (v_REGDOMAIN_t *) &reg_domain_id,
+                                                  COUNTRY_IE);
+
+        return eHAL_STATUS_FAILURE;
     }
 
     /* if Supplicant country code has priority, disable 11d */

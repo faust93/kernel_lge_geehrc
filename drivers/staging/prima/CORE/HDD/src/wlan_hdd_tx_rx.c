@@ -714,6 +714,22 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
          pAdapter->isTxSuspended[ac] = VOS_TRUE;
          txSuspended = VOS_TRUE;
    }
+   else
+   {
+         /* In IBSS when a IBSS peer departs, there is no explicit
+            DEAUTH/DISASSOC to detect peer has left the N/W. The only way to
+            detect peer leaving is via heartbeat which is of the order of few
+            seconds. Hence do not back pressure during IBSS as one peer leaving
+            can potentially throttle traffic for other peers in the N/W
+         */
+         ++pAdapter->stats.tx_dropped;
+         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDropped;
+         ++pAdapter->hdd_stats.hddTxRxStats.txXmitDroppedAC[ac];
+         kfree_skb(skb);
+         spin_unlock(&pAdapter->wmm_tx_queue[ac].lock);
+         return NETDEV_TX_OK;
+
+   }
 
    /* If 3/4th of the max queue size is used then enable the flag.
     * This flag indicates to place the DHCP packets in VOICE AC queue.*/
@@ -771,15 +787,25 @@ int hdd_hard_start_xmit(struct sk_buff *skb, struct net_device *dev)
    ++pAdapter->hdd_stats.hddTxRxStats.txXmitQueuedAC[ac];
    ++pAdapter->hdd_stats.hddTxRxStats.pkt_tx_count;
 
+   if (HDD_PSB_CHANGED == pAdapter->psbChanged)
+   {
+      /* Function which will determine acquire admittance for a
+       * WMM AC is required or not based on psb configuration done
+       * in the framework
+       */
+       hdd_wmm_acquire_access_required(pAdapter, ac);
+   }
+
    //Make sure we have access to this access category
-   if (likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed) ||
-           ( pHddStaCtx->conn_info.uIsAuthenticated == VOS_FALSE))
+   if (((pAdapter->psbChanged & (1 << ac)) && likely(pAdapter->hddWmmStatus.wmmAcStatus[ac].wmmAcAccessAllowed)) ||
+           (pHddStaCtx->conn_info.uIsAuthenticated == VOS_FALSE))
    {
       granted = VOS_TRUE;
    }
    else
    {
       status = hdd_wmm_acquire_access( pAdapter, ac, &granted );
+      pAdapter->psbChanged |= (1 << ac);
    }
    if ( granted && ( pktListSize == 1 ))
    {

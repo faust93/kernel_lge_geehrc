@@ -151,6 +151,11 @@ static struct kparam_string fwpath = {
    .string = fwpath_buffer,
    .maxlen = BUF_LEN,
 };
+
+static char *country_code;
+static int   enable_11d = -1;
+static int   enable_dfs_chan_scan = -1;
+
 #ifndef MODULE
 static int wlan_hdd_inited;
 #endif
@@ -804,12 +809,17 @@ hdd_parse_set_batchscan_command
     tANI_U8 *inPtr = pValue;
     tANI_U8 val = 0;
     tANI_U8 lastArg = 0;
+    tANI_U32 nScanFreq;
+    tANI_U32 nMscan;
+    tANI_U32 nBestN;
+    tANI_U8  ucRfBand;
+    tANI_U32 nRtt;
 
     /*initialize default values*/
-    pHddSetBatchScanReq->scanFrequency = HDD_SET_BATCH_SCAN_DEFAULT_FREQ;
-    pHddSetBatchScanReq->rfBand = HDD_SET_BATCH_SCAN_DEFAULT_BAND;
-    pHddSetBatchScanReq->rtt = 0;
-    pHddSetBatchScanReq->bestNetwork = HDD_SET_BATCH_SCAN_BEST_NETWORK;
+    nScanFreq = HDD_SET_BATCH_SCAN_DEFAULT_FREQ;
+    ucRfBand = HDD_SET_BATCH_SCAN_DEFAULT_BAND;
+    nRtt = 0;
+    nBestN = HDD_SET_BATCH_SCAN_BEST_NETWORK;
 
     /*go to space after WLS_BATCHING_SET command*/
     inPtr = strnchr(pValue, strlen(pValue), SPACE_ASCII_VALUE);
@@ -838,7 +848,13 @@ hdd_parse_set_batchscan_command
     if ((strncmp(inPtr, "SCANFREQ", 8) == 0))
     {
         inPtr = hdd_extract_assigned_int_from_str(inPtr, 10,
-                    &pHddSetBatchScanReq->scanFrequency, &lastArg);
+                    &nScanFreq, &lastArg);
+
+        if (0 == nScanFreq)
+        {
+           nScanFreq = HDD_SET_BATCH_SCAN_DEFAULT_FREQ;
+        }
+
         if ( (NULL == inPtr) || (TRUE == lastArg))
         {
             return -EINVAL;
@@ -849,7 +865,15 @@ hdd_parse_set_batchscan_command
     if ((strncmp(inPtr, "MSCAN", 5) == 0))
     {
         inPtr = hdd_extract_assigned_int_from_str(inPtr, 10,
-                    &pHddSetBatchScanReq->numberOfScansToBatch, &lastArg);
+                    &nMscan, &lastArg);
+
+        if (0 == nMscan)
+        {
+            VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
+                "invalid MSCAN=%d", nMscan);
+            return -EINVAL;
+        }
+
         if (TRUE == lastArg)
         {
             goto done;
@@ -868,7 +892,13 @@ hdd_parse_set_batchscan_command
     if ((strncmp(inPtr, "BESTN", 5) == 0))
     {
         inPtr = hdd_extract_assigned_int_from_str(inPtr, 10,
-                    &pHddSetBatchScanReq->bestNetwork, &lastArg);
+                    &nBestN, &lastArg);
+
+        if (0 == nBestN)
+        {
+           nBestN = HDD_SET_BATCH_SCAN_BEST_NETWORK;
+        }
+
         if (TRUE == lastArg)
         {
             goto done;
@@ -893,11 +923,11 @@ hdd_parse_set_batchscan_command
         }
         if (('A' == val) || ('a' == val))
         {
-            pHddSetBatchScanReq->rfBand = HDD_SET_BATCH_SCAN_24GHz_BAND_ONLY;
+            ucRfBand = HDD_SET_BATCH_SCAN_24GHz_BAND_ONLY;
         }
         else if (('B' == val) || ('b' == val))
         {
-            pHddSetBatchScanReq->rfBand = HDD_SET_BATCH_SCAN_5GHz_BAND_ONLY;
+            ucRfBand = HDD_SET_BATCH_SCAN_5GHz_BAND_ONLY;
         }
         else
         {
@@ -909,7 +939,7 @@ hdd_parse_set_batchscan_command
     if ((strncmp(inPtr, "RTT", 3) == 0))
     {
         inPtr = hdd_extract_assigned_int_from_str(inPtr, 10,
-                    &pHddSetBatchScanReq->rtt, &lastArg);
+                    &nRtt, &lastArg);
         if (TRUE == lastArg)
         {
             goto done;
@@ -922,6 +952,12 @@ hdd_parse_set_batchscan_command
 
 
 done:
+
+    pHddSetBatchScanReq->scanFrequency = nScanFreq;
+    pHddSetBatchScanReq->numberOfScansToBatch = nMscan;
+    pHddSetBatchScanReq->bestNetwork = nBestN;
+    pHddSetBatchScanReq->rfBand = ucRfBand;
+    pHddSetBatchScanReq->rtt = nRtt;
 
     VOS_TRACE( VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
       "Received WLS_BATCHING_SET with SCANFREQ=%d "
@@ -1350,6 +1386,8 @@ hdd_format_batch_scan_rsp
        temp_len = snprintf(pTemp, (sizeof(temp) - temp_total_len), "----\n");
        pTemp += temp_len;
        temp_total_len += temp_len;
+
+       pAdapter->prev_batch_id = 0;
    }
 
    if (temp_total_len < rem_len)
@@ -1363,7 +1401,7 @@ hdd_format_batch_scan_rsp
       pAdapter->isTruncated = TRUE;
       if (rem_len >= strlen("%%%%"))
       {
-          ret = snprintf(pDest, strlen("%%%%"), "%%%%");
+          ret = snprintf(pDest, strlen("%%%%"), "%%%%%%%%");
       }
       {
           ret = 0;
@@ -1400,7 +1438,6 @@ tANI_U32 hdd_populate_user_batch_scan_rsp
     tHddBatchScanRsp *pPrev;
     tANI_U32 len;
 
-    pAdapter->prev_batch_id = 0;
     pAdapter->isTruncated = FALSE;
 
     /*head of hdd batch scan response queue*/
@@ -1671,6 +1708,11 @@ int hdd_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
                     "%s: SetBandCommand Info  comm %s UL %d, TL %d", __func__, command, priv_data.used_len, priv_data.total_len);
            /* Change band request received */
            ret = hdd_setBand_helper(dev, ptr);
+       }
+       else if(strncmp(command, "SETWMMPS", 8) == 0)
+       {
+           tANI_U8 *ptr = command;
+           ret = hdd_wmmps_helper(pAdapter, ptr);
        }
        else if ( strncasecmp(command, "COUNTRY", 7) == 0 )
        {
@@ -4048,7 +4090,8 @@ VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApB
     if (1 != v) return -EINVAL;
 
     v = kstrtos32(tempBuf, 10, &tempInt);
-    if ( v < 0) return -EINVAL;
+    if ( v < 0 || tempInt <= 0 || tempInt > WNI_CFG_CURRENT_CHANNEL_STAMAX )
+     return -EINVAL;
 
     *pChannel = tempInt;
 
@@ -4070,7 +4113,7 @@ VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApB
     if (1 != v) return -EINVAL;
 
     v = kstrtos32(tempBuf, 10, &tempInt);
-    if ( v < 0) return -EINVAL;
+    if ( v < 0 || tempInt <= 0) return -EINVAL;
 
     *pDwellTime = tempInt;
 
@@ -4092,8 +4135,8 @@ VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApB
     while(('\0' !=  *dataEnd) )
     {
         dataEnd++;
-        ++(*pBufLen);
     }
+    *pBufLen = dataEnd - inPtr ;
     if ( *pBufLen <= 0)  return -EINVAL;
 
     /* Allocate the number of bytes based on the number of input characters
@@ -4117,7 +4160,14 @@ VOS_STATUS hdd_parse_send_action_frame_data(tANI_U8 *pValue, tANI_U8 *pTargetApB
        and f0 in 3rd location */
     for (i = 0, j = 0; j < *pBufLen; j += 2)
     {
-        tempByte = (hdd_parse_hex(inPtr[j]) << 4) | (hdd_parse_hex(inPtr[j + 1]));
+        if( j+1 == *pBufLen)
+        {
+             tempByte = hdd_parse_hex(inPtr[j]);
+        }
+        else
+        {
+              tempByte = (hdd_parse_hex(inPtr[j]) << 4) | (hdd_parse_hex(inPtr[j + 1]));
+        }
         (*pBuf)[i++] = tempByte;
     }
     *pBufLen = i;
@@ -5116,6 +5166,7 @@ static hdd_adapter_t* hdd_alloc_station_adapter( hdd_context_t *pHddCtx, tSirMac
       pAdapter->pBatchScanRsp = NULL;
       pAdapter->numScanList = 0;
       pAdapter->batchScanState = eHDD_BATCH_SCAN_STATE_STOPPED;
+      pAdapter->prev_batch_id = 0;
       mutex_init(&pAdapter->hdd_batch_scan_lock);
 #endif
 
@@ -7773,6 +7824,19 @@ int hdd_wlan_startup(struct device *dev )
       the INI file and from NV before vOSS has been started so that
       the final contents are available to send down to the cCPU   */
 
+   if (0 == enable_dfs_chan_scan || 1 == enable_dfs_chan_scan)
+   {
+      pHddCtx->cfg_ini->enableDFSChnlScan = enable_dfs_chan_scan;
+      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_dfs_chan_scan set to %d",
+             __func__, enable_dfs_chan_scan);
+   }
+   if (0 == enable_11d || 1 == enable_11d)
+   {
+      pHddCtx->cfg_ini->Is11dSupportEnabled = enable_11d;
+      hddLog(VOS_TRACE_LEVEL_INFO, "%s: module enable_11d set to %d",
+             __func__, enable_11d);
+   }
+
    // Apply the cfg.ini to cfg.dat
    if (FALSE == hdd_update_config_dat(pHddCtx))
    {
@@ -7940,6 +8004,30 @@ int hdd_wlan_startup(struct device *dev )
    {
       hddLog(VOS_TRACE_LEVEL_ERROR, "%s: hdd_open_adapter failed", __func__);
       goto err_close_adapter;
+   }
+
+   if (country_code)
+   {
+      eHalStatus ret;
+      hdd_checkandupdate_dfssetting(pAdapter, country_code);
+#ifndef CONFIG_ENABLE_LINUX_REG
+      hdd_checkandupdate_phymode(pAdapter, country_code);
+#endif
+      ret = sme_ChangeCountryCode(pHddCtx->hHal, NULL,
+                                  country_code,
+                                  pAdapter, pHddCtx->pvosContext,
+                                  eSIR_TRUE);
+      if (eHAL_STATUS_SUCCESS == ret)
+      {
+         VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
+                   "%s: SME Change Country code from module param fail ret=%d",
+                   __func__, ret);
+      }
+      else
+      {
+         hddLog(VOS_TRACE_LEVEL_INFO, "%s: module country code set to %c%c",
+                __func__, country_code[0], country_code[1]);
+      }
    }
 
 #ifdef WLAN_BTAMP_FEATURE
@@ -8999,3 +9087,12 @@ module_param_call(con_mode, con_mode_handler, param_get_int, &con_mode,
 
 module_param_call(fwpath, fwpath_changed_handler, param_get_string, &fwpath,
                     S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
+
+module_param(enable_dfs_chan_scan, int,
+             S_IRUSR | S_IRGRP | S_IROTH);
+
+module_param(enable_11d, int,
+             S_IRUSR | S_IRGRP | S_IROTH);
+
+module_param(country_code, charp,
+             S_IRUSR | S_IRGRP | S_IROTH);
