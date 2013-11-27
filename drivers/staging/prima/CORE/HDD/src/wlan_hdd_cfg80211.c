@@ -1019,6 +1019,9 @@ int wlan_hdd_cfg80211_alloc_new_beacon(hdd_adapter_t *pAdapter,
     if (!params->head && !old)
         return -EINVAL;
 
+    if (params->tail && !params->tail_len)
+        return -EINVAL;
+
 #if (LINUX_VERSION_CODE <= KERNEL_VERSION(2,6,38))
     /* Kernel 3.0 is not updating dtim_period for set beacon */
     if (!params->dtim_period)
@@ -5615,7 +5618,9 @@ int wlan_hdd_cfg80211_set_ie( hdd_adapter_t *pAdapter,
                     pWextState->roamProfile.nWPAReqIELength = eLen + 2;//ie_len;
                 }
                 else if ( (0 == memcmp(&genie[0], P2P_OUI_TYPE,
-                                                         P2P_OUI_TYPE_SIZE)))
+                                                         P2P_OUI_TYPE_SIZE))
+                        /*Consider P2P IE, only for P2P Client */
+                         && (WLAN_HDD_P2P_CLIENT == pAdapter->device_mode) )
                 {
                     v_U16_t curAddIELen = pWextState->assocAddIE.length;
                     hddLog (VOS_TRACE_LEVEL_INFO, "%s Set P2P IE(len %d)",
@@ -6326,7 +6331,6 @@ static int wlan_hdd_cfg80211_set_privacy_ibss(
     ENTER();
 
     pWextState->wpaVersion = IW_AUTH_WPA_VERSION_DISABLED;
-    vos_mem_zero(&pHddStaCtx->ibss_enc_key, sizeof(tCsrRoamSetKey));
 
     if (params->ie_len && ( NULL != params->ie) )
     {
@@ -6408,7 +6412,6 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
     hdd_wext_state_t *pWextState = WLAN_HDD_GET_WEXT_STATE_PTR(pAdapter);
     tCsrRoamProfile          *pRoamProfile;
     int status;
-    bool alloc_bssid = VOS_FALSE;
     hdd_station_ctx_t *pHddStaCtx = WLAN_HDD_GET_STATION_CTX_PTR(pAdapter);
     hdd_context_t *pHddCtx = WLAN_HDD_GET_CTX(pAdapter);
 
@@ -6440,37 +6443,6 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
         hddLog (VOS_TRACE_LEVEL_ERROR,
                 "%s Interface type is not set to IBSS \n", __func__);
         return -EINVAL;
-    }
-
-    /* BSSID is provided by upper layers hence no need to AUTO generate */
-    if (NULL != params->bssid) {
-       if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IBSS_AUTO_BSSID, 0,
-                        NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE) {
-           hddLog (VOS_TRACE_LEVEL_ERROR,
-                  "%s:ccmCfgStInt faild for WNI_CFG_IBSS_AUTO_BSSID", __func__);
-           return -EIO;
-       }
-    }
-    else if(pHddCtx->cfg_ini->isCoalesingInIBSSAllowed == 0)
-    {
-        if (ccmCfgSetInt(pHddCtx->hHal, WNI_CFG_IBSS_AUTO_BSSID, 0,
-                         NULL, eANI_BOOLEAN_FALSE)==eHAL_STATUS_FAILURE)
-        {
-            hddLog (VOS_TRACE_LEVEL_ERROR,
-                    "%s:ccmCfgStInt faild for WNI_CFG_IBSS_AUTO_BSSID", __func__);
-            return -EIO;
-        }
-        params->bssid = vos_mem_malloc(sizeof(VOS_MAC_ADDR_SIZE));
-        if (!params->bssid)
-        {
-            hddLog (VOS_TRACE_LEVEL_ERROR,
-                    "%s:Failed memory allocation", __func__);
-            return -EIO;
-        }
-        vos_mem_copy((v_U8_t *)params->bssid,
-                     (v_U8_t *)&pHddCtx->cfg_ini->IbssBssid.bytes[0],
-                     VOS_MAC_ADDR_SIZE);
-        alloc_bssid = VOS_TRUE;
     }
 
     /* Set Channel */
@@ -6546,12 +6518,6 @@ static int wlan_hdd_cfg80211_join_ibss( struct wiphy *wiphy,
         return status;
     }
 
-    if (NULL != params->bssid &&
-        pHddCtx->cfg_ini->isCoalesingInIBSSAllowed == 0 &&
-        alloc_bssid == VOS_TRUE)
-    {
-        vos_mem_free(params->bssid);
-    }
     return 0;
 }
 
@@ -8819,9 +8785,6 @@ void wlan_hdd_cfg80211_lphb_ind_handler
    }
 
    lphbInd = (tSirLPHBInd *)indCont;
-
-#ifdef WLAN_NL80211_TESTMODE
-
    skb = cfg80211_testmode_alloc_event_skb(
                   ((hdd_adapter_t *)pAdapter)->wdev.wiphy,
                   sizeof(tSirLPHBInd),
@@ -8833,9 +8796,7 @@ void wlan_hdd_cfg80211_lphb_ind_handler
       return;
    }
 
-#endif
-
-   if(!nla_put_u32(skb, WLAN_HDD_TM_ATTR_CMD, WLAN_HDD_TM_CMD_WLAN_HB))
+   if(nla_put_u32(skb, WLAN_HDD_TM_ATTR_CMD, WLAN_HDD_TM_CMD_WLAN_HB))
    {
       VOS_TRACE(VOS_MODULE_ID_HDD, VOS_TRACE_LEVEL_ERROR,
                 "WLAN_HDD_TM_ATTR_CMD put fail");
@@ -8854,9 +8815,7 @@ void wlan_hdd_cfg80211_lphb_ind_handler
                 "WLAN_HDD_TM_ATTR_DATA put fail");
       goto nla_put_failure;
    }
-#ifdef WLAN_NL80211_TESTMODE
    cfg80211_testmode_event(skb, GFP_ATOMIC);
-#endif
    return;
 
 nla_put_failure:

@@ -532,7 +532,7 @@ eHalStatus csrStart(tpAniSirGlobal pMac)
     return (status);
 }
 
-eHalStatus csrStop(tpAniSirGlobal pMac, tHalStopType stopType)
+eHalStatus csrStop(tpAniSirGlobal pMac)
 {
     tANI_U32 sessionId;
     tANI_U32 i;
@@ -562,18 +562,6 @@ eHalStatus csrStop(tpAniSirGlobal pMac, tHalStopType stopType)
        csrRoamStateChange( pMac, eCSR_ROAMING_STATE_STOP, i );
        pMac->roam.curSubState[i] = eCSR_ROAM_SUBSTATE_NONE;
     }
-
-#ifdef WLAN_FEATURE_ROAM_SCAN_OFFLOAD
-    /* When HAL resets all the context information
-     * in HAL is lost, so we might need to send the
-     * scan offload request again when it comes
-     * out of reset for scan offload to be functional
-     */
-    if (HAL_STOP_TYPE_SYS_RESET == stopType)
-    {
-       bRoamScanOffloadStarted = VOS_FALSE;
-    }
-#endif
 
     return (eHAL_STATUS_SUCCESS);
 }
@@ -887,9 +875,8 @@ void csrAbortCommand( tpAniSirGlobal pMac, tSmeCmd *pCommand, tANI_BOOLEAN fStop
         {
         case eSmeCommandScan:
             // We need to inform the requester before dropping the scan command
-            smsLog( pMac, LOGW, "%s: Drop scan reason %d callback %p",
-                    __func__, pCommand->u.scanCmd.reason,
-                    pCommand->u.scanCmd.callback);
+            smsLog( pMac, LOGW, "%s: Drop scan reason %d callback 0x%X",
+                __func__, pCommand->u.scanCmd.reason, (unsigned int)pCommand->u.scanCmd.callback);
             if (NULL != pCommand->u.scanCmd.callback)
             {
                 smsLog( pMac, LOGW, "%s callback scan requester", __func__);
@@ -1737,8 +1724,6 @@ eHalStatus csrChangeDefaultConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pPa
 
         pMac->roam.configParam.isAmsduSupportInAMPDU = pParam->isAmsduSupportInAMPDU;
         pMac->roam.configParam.nSelect5GHzMargin = pParam->nSelect5GHzMargin;
-        pMac->roam.configParam.isCoalesingInIBSSAllowed =
-                               pParam->isCoalesingInIBSSAllowed;
     }
     
     return status;
@@ -1869,9 +1854,6 @@ eHalStatus csrGetConfigParam(tpAniSirGlobal pMac, tCsrConfigParam *pParam)
 
         pParam->isAmsduSupportInAMPDU = pMac->roam.configParam.isAmsduSupportInAMPDU;
         pParam->nSelect5GHzMargin = pMac->roam.configParam.nSelect5GHzMargin;
-
-        pParam->isCoalesingInIBSSAllowed =
-                                pMac->roam.configParam.isCoalesingInIBSSAllowed;
 
         csrSetChannels(pMac, pParam);
 
@@ -11398,21 +11380,6 @@ static void csrRoamGetBssStartParmsFromBssDesc( tpAniSirGlobal pMac, tSirBssDesc
                 vos_mem_copy(pParam->operationalRateSet.rate, pIes->SuppRates.rates,
                              sizeof(*pIes->SuppRates.rates) * pIes->SuppRates.num_rates);
             }
-            if (pIes->ExtSuppRates.present)
-            {
-                pParam->extendedRateSet.numRates = pIes->ExtSuppRates.num_rates;
-                if(pIes->ExtSuppRates.num_rates > SIR_MAC_EXTENDED_RATE_EID_MAX)
-                {
-                   smsLog(pMac, LOGE, FL("num_rates :%d is more than \
-                                         SIR_MAC_RATESET_EID_MAX, resetting to \
-                                         SIR_MAC_RATESET_EID_MAX"),
-                                         pIes->ExtSuppRates.num_rates);
-                   pIes->ExtSuppRates.num_rates = SIR_MAC_EXTENDED_RATE_EID_MAX;
-                }
-                palCopyMemory(pMac->hHdd, pParam->extendedRateSet.rate,
-                              pIes->ExtSuppRates.rates,
-                              sizeof(*pIes->ExtSuppRates.rates) * pIes->ExtSuppRates.num_rates);
-            }
             if( pIes->SSID.present )
             {
                 pParam->ssId.length = pIes->SSID.num_ssid;
@@ -13627,9 +13594,6 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
         // Set wps_state
         *pBuf = pParam->wps_state;
         pBuf++;
-        // set isCoalesingInIBSSAllowed
-        *pBuf = pMac->isCoalesingInIBSSAllowed;
-        pBuf++;
         //Persona
         *pBuf = (tANI_U8)pParam->bssPersona;
         pBuf++;
@@ -13669,7 +13633,6 @@ eHalStatus csrSendMBStartBssReqMsg( tpAniSirGlobal pMac, tANI_U32 sessionId, eCs
                          pParam->extendedRateSet.numRates);
             pBuf += pParam->extendedRateSet.numRates;
         }
-
         msgLen = (tANI_U16)(sizeof(tANI_U32 ) + (pBuf - wTmpBuf)); //msg_header + msg
         pMsg->length = pal_cpu_to_be16(msgLen);
         

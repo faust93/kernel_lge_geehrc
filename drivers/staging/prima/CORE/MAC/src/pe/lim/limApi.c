@@ -1680,9 +1680,7 @@ limHandleIBSScoalescing(
     tSirRetStatus   retCode;
 
     pHdr = WDA_GET_RX_MAC_HEADER(pRxPacketInfo);
-    if ( (!pBeacon->capabilityInfo.ibss) ||
-         (limCmpSSid(pMac, &pBeacon->ssId,psessionEntry) != true) ||
-         (psessionEntry->currentOperChannel != pBeacon->channelNumber) )
+    if ( (!pBeacon->capabilityInfo.ibss) || (limCmpSSid(pMac, &pBeacon->ssId,psessionEntry) != true) )
         /* Received SSID does not match => Ignore received Beacon frame. */
         retCode =  eSIR_LIM_IGNORE_BEACON;
     else

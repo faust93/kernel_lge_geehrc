@@ -202,7 +202,7 @@ eHalStatus sme_Start(tHalHandle hHal);
   
   \param hHal - The handle returned by macOpen.
 
-  \param tHalStopType - reason for stopping
+  \param pmcFlag - The flag tells SME if we want to stop PMC or not
   
   \return eHAL_STATUS_SUCCESS - SME is stopped.
   
@@ -211,7 +211,7 @@ eHalStatus sme_Start(tHalHandle hHal);
   \sa
   
   --------------------------------------------------------------------------*/
-eHalStatus sme_Stop(tHalHandle hHal, tHalStopType stopType);
+eHalStatus sme_Stop(tHalHandle hHal, tANI_BOOLEAN pmcFlag);
 
 
 /*--------------------------------------------------------------------------
@@ -853,17 +853,6 @@ eHalStatus sme_GetTsmStats(tHalHandle hHal,
     \- return Success or failure
     -------------------------------------------------------------------------*/
 eHalStatus sme_SetCCKMIe(tHalHandle hHal, tANI_U8 sessionId, tANI_U8 *pCckmIe, tANI_U8 cckmIeLen);
-
-
-/* ---------------------------------------------------------------------------
-    \fn sme_SetCcxBeaconRequest
-    \brief  function to set CCX beacon request parameters
-    \param  hHal - HAL handle for device
-    \param  pCcxBcnReq - pointer to CCX beacon request
-    \- return Success or failure
-    -------------------------------------------------------------------------*/
-eHalStatus sme_SetCcxBeaconRequest(tHalHandle hHal, const tANI_U8 sessionId,
-                                   const tCsrCcxBeaconReq* pCcxBcnReq);
 
 
 #endif /*FEATURE_WLAN_CCX && FEATURE_WLAN_CCX_UPLOAD */
@@ -2266,16 +2255,6 @@ eHalStatus sme_p2pGetResultFilter(tHalHandle hHal, tANI_U8 HDDSessionId,
     -------------------------------------------------------------------------*/
 eHalStatus sme_SetMaxTxPower(tHalHandle hHal, tSirMacAddr pBssid, 
                              tSirMacAddr pSelfMacAddress, v_S7_t dB);
-
-/* ---------------------------------------------------------------------------
-    \fn sme_SetMaxTxPowerPerBand
-    \brief  Used to set the Maximum Transmit Power for
-    specific band dynamically. Note: this setting will not persist over reboots
-    \param band
-    \param power to set in dB
-    \- return eHalStatus
-    -------------------------------------------------------------------------*/
-eHalStatus sme_SetMaxTxPowerPerBand(eCsrBand band, v_S7_t db);
 
 /* ---------------------------------------------------------------------------
 

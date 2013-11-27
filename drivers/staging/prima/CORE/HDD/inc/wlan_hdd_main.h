@@ -83,6 +83,8 @@
 #define LIBRA_CARD_REMOVE_DETECT_MAX_COUNT      5
 /** Number of Tx Queues */  
 #define NUM_TX_QUEUES 4
+/** Queue length specified to OS in the net_device */
+#define NET_DEV_TX_QUEUE_LEN 100
 /** HDD's internal Tx Queue Length. Needs to be a power of 2 */
 #define HDD_TX_QUEUE_MAX_LEN 128
 /** HDD internal Tx Queue Low Watermark. Net Device TX queue is disabled
@@ -957,10 +959,6 @@ struct hdd_adapter_s
 #if defined(FEATURE_WLAN_CCX) && defined(FEATURE_WLAN_CCX_UPLOAD)
    tAniTrafStrmMetrics tsmStats;
 #endif
-   /* Flag to ensure PSB is configured through framework */
-   v_U8_t psbChanged;
-   /* UAPSD psb value configured through framework */
-   v_U8_t configuredPsb;
 };
 
 #define WLAN_HDD_GET_STATION_CTX_PTR(pAdapter) (&(pAdapter)->sessionCtx.station)
@@ -1279,5 +1277,4 @@ int wlan_hdd_setIPv6Filter(hdd_context_t *pHddCtx, tANI_U8 filterType, tANI_U8 s
 #ifdef CONFIG_ENABLE_LINUX_REG
 void hdd_checkandupdate_phymode( hdd_context_t *pHddCtx);
 #endif
-int hdd_wmmps_helper(hdd_adapter_t *pAdapter, tANI_U8 *ptr);
 #endif    // end #if !defined( WLAN_HDD_MAIN_H )

@@ -667,7 +667,6 @@ typedef struct tagCsrConfig
     tANI_BOOLEAN enableHeartBeatOffload;
     tANI_U8 isAmsduSupportInAMPDU;
     tANI_U8 nSelect5GHzMargin;
-    tANI_U8 isCoalesingInIBSSAllowed;
 }tCsrConfig;
 
 typedef struct tagCsrChannelPowerInfo
@@ -1313,7 +1312,7 @@ eHalStatus csrStart(tpAniSirGlobal pMac);
     \brief To stop CSR. CSR still keeps its current setting.
     \return eHalStatus
   -------------------------------------------------------------------------------*/
-eHalStatus csrStop(tpAniSirGlobal pMac, tHalStopType stopType);
+eHalStatus csrStop(tpAniSirGlobal pMac);
 /* ---------------------------------------------------------------------------
     \fn csrReady
     \brief To let CSR is ready to operate

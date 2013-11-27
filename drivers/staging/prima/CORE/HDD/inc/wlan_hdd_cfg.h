@@ -1933,11 +1933,6 @@ This feature requires the dependent cfg.ini "gRoamPrefer5GHz" set to 1 */
 #define CFG_STRICT_5GHZ_PREF_BY_MARGIN_MAX             (60)
 #define CFG_STRICT_5GHZ_PREF_BY_MARGIN_DEFAULT         (0) //set 0 to disable
 
-#define CFG_COALESING_IN_IBSS_NAME                "gCoalesingInIBSS"
-#define CFG_COALESING_IN_IBSS_MIN                 (0)
-#define CFG_COALESING_IN_IBSS_MAX                 (1)
-#define CFG_COALESING_IN_IBSS_DEFAULT             (0) //disabled
-
 /*--------------------------------------------------------------------------- 
   Type declarations
   -------------------------------------------------------------------------*/ 
@@ -2340,7 +2335,6 @@ typedef struct
 #endif
    v_U8_t                      isAmsduSupportInAMPDU;
    v_U8_t                      nSelect5GHzMargin;
-   v_U8_t                      isCoalesingInIBSSAllowed;
 } hdd_config_t;
 /*--------------------------------------------------------------------------- 
   Function declarations and documenation
@@ -2353,8 +2347,9 @@ eCsrPhyMode hdd_cfg_xlate_to_csr_phy_mode( eHddDot11Mode dot11Mode );
 VOS_STATUS hdd_execute_config_command(hdd_context_t *pHddCtx, char *command);
 tANI_BOOLEAN hdd_is_okc_mode_enabled(hdd_context_t *pHddCtx);
 
-#define VAR_OFFSET( _Struct, _Var ) (offsetof(_Struct, _Var))
-#define VAR_SIZE( _Struct, _Var ) (sizeof(((_Struct *)0)->_Var))
+#define FIELD_OFFSET(__type, __field) ((unsigned int)(&((__type *)0)->__field))
+#define VAR_OFFSET( _Struct, _Var ) ( (unsigned int) FIELD_OFFSET(_Struct, _Var ) )
+#define VAR_SIZE( _Struct, _Var ) sizeof( ((_Struct *)0)->_Var )
 
 #define VAR_FLAGS_NONE         (      0 )
 #define VAR_FLAGS_REQUIRED     ( 1 << 0 )   // bit 0 is Required or Optional

@@ -94,7 +94,6 @@
  *array of 166 is required.
  */
 #define SIR_MAX_24G_5G_CHANNEL_RANGE      166
-#define SIR_BCN_REPORT_MAX_BSS_DESC       4
 
 
 #ifdef FEATURE_WLAN_BATCH_SCAN
@@ -648,7 +647,6 @@ typedef struct sSirSmeStartBssReq
     tAniAuthType            authType;
     tANI_U32                dtimPeriod;
     tANI_U8                 wps_state;
-    tANI_U8                 isCoalesingInIBSSAllowed; //Coalesing on/off knob
     tVOS_CON_MODE           bssPersona;
 
     tANI_U8                 txLdpcIniFeatureEnabled;
@@ -732,7 +730,7 @@ typedef struct sSirSmeStartBssRsp
 typedef struct sSirChannelList
 {
     tANI_U8          numChannels;
-    tANI_U8          channelNumber[SIR_CCX_MAX_MEAS_IE_REQS];
+    tANI_U8          channelNumber[1];
 } tSirChannelList, *tpSirChannelList;
 
 typedef struct sSirDFSChannelList
@@ -2202,22 +2200,6 @@ typedef struct sAniGetTsmStatsRsp
     tAniTrafStrmMetrics tsmMetrics;
     void               *tsmStatsReq; //tsm stats request backup
 } tAniGetTsmStatsRsp, *tpAniGetTsmStatsRsp;
-
-typedef struct sSirCcxBcnReportBssInfo
-{
-    tBcnReportFields  bcnReportFields;
-    tANI_U8           ieLen;
-    tANI_U8           *pBuf;
-} tSirCcxBcnReportBssInfo, *tpSirCcxBcnReportBssInfo;
-
-typedef struct sSirCcxBcnReportRsp
-{
-    tANI_U16    measurementToken;
-    tANI_U8     flag;     /* Flag to report measurement done and more data */
-    tANI_U8     numBss;
-    tSirCcxBcnReportBssInfo bcnRepBssInfo[SIR_BCN_REPORT_MAX_BSS_DESC];
-} tSirCcxBcnReportRsp, *tpSirCcxBcnReportRsp;
-
 #endif /* FEATURE_WLAN_CCX || FEATURE_WLAN_CCX_UPLOAD */
 
 /* Change country code request MSG structure */

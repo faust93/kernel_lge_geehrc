@@ -2956,7 +2956,7 @@ static const struct iw_priv_args hostapd_private_args[] = {
   { QCSAP_IOCTL_GET_STA_INFO, 0,
       IW_PRIV_TYPE_CHAR | WE_SAP_MAX_STA_INFO, "get_sta_info" },
   { QCSAP_IOCTL_GET_WPS_PBC_PROBE_REQ_IES,
-      IW_PRIV_TYPE_BYTE | sizeof(sQcSapreq_WPSPBCProbeReqIES_t) | IW_PRIV_SIZE_FIXED, 0, "getProbeReqIEs" },
+      IW_PRIV_TYPE_BYTE | sizeof(sQcSapreq_WPSPBCProbeReqIES_t) | IW_PRIV_SIZE_FIXED | 1, 0, "getProbeReqIEs" },
   { QCSAP_IOCTL_GET_CHANNEL, 0,
       IW_PRIV_TYPE_INT | IW_PRIV_SIZE_FIXED | 1, "getchannel" },
   { QCSAP_IOCTL_ASSOC_STA_MACADDR, 0,
@@ -3210,6 +3210,7 @@ hdd_adapter_t* hdd_wlan_create_ap_dev( hdd_context_t *pHddCtx, tSirMacAddr macAd
 
         hdd_set_ap_ops( pHostapdAdapter->dev );
 
+        pWlanHostapdDev->tx_queue_len = NET_DEV_TX_QUEUE_LEN;
         pWlanHostapdDev->watchdog_timeo = HDD_TX_TIMEOUT;
         pWlanHostapdDev->mtu = HDD_DEFAULT_MTU;
     

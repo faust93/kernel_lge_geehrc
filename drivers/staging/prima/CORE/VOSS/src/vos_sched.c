@@ -211,7 +211,7 @@ vos_sched_open
   }
   wake_up_process(pSchedContext->TxThread);
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-             ("VOSS TX thread Created"));
+             ("VOSS TX thread Created\n"));
 
   pSchedContext->RxThread = kthread_create(VosRXThread, pSchedContext,
                                            "VosRXThread");
@@ -225,7 +225,7 @@ vos_sched_open
   }
   wake_up_process(pSchedContext->RxThread);
   VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_INFO_HIGH,
-             ("VOSS RX thread Created"));
+             ("VOSS RX thread Created\n"));
 
   /*
   ** Now make sure all threads have started before we exit.
@@ -1175,7 +1175,7 @@ VOS_STATUS vos_sched_close ( v_PVOID_t pVosContext )
     if (gpVosSchedContext == NULL)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: gpVosSchedContext == NULL",__func__);
+           "%s: gpVosSchedContext == NULL\n",__func__);
        return VOS_STATUS_E_FAILURE;
     }
 
@@ -1221,7 +1221,7 @@ VOS_STATUS vos_watchdog_close ( v_PVOID_t pVosContext )
     if (gpVosWatchdogContext == NULL)
     {
        VOS_TRACE(VOS_MODULE_ID_VOSS, VOS_TRACE_LEVEL_ERROR,
-           "%s: gpVosWatchdogContext is NULL",__func__);
+           "%s: gpVosWatchdogContext is NULL\n",__func__);
        return VOS_STATUS_E_FAILURE;
     }
     set_bit(WD_SHUTDOWN_EVENT_MASK, &gpVosWatchdogContext->wdEventFlag);
@@ -1448,7 +1448,7 @@ void vos_sched_flush_mc_mqs ( pVosSchedContext pSchedContext )
   */
   VOS_TRACE( VOS_MODULE_ID_VOSS,
              VOS_TRACE_LEVEL_INFO,
-             ("Flushing the MC Thread message queue") );
+             ("Flushing the MC Thread message queue\n") );
 
   if (NULL == pSchedContext)
   {
