@@ -40,7 +40,7 @@
 #endif
 #include "acpuclock.h"
 
-#define DEBUG 0
+//#define DEBUG 0
 
 #define MPDEC_TAG                       "[MPDEC]: "
 #define MSM_MPDEC_STARTDELAY            15000
@@ -51,8 +51,8 @@
 #define MSM_MPDEC_BOOSTTIME             2000
 #define MSM_MPDEC_BOOSTFREQ_CPU0        1026000
 #define MSM_MPDEC_BOOSTFREQ_CPU1        1026000
-#define MSM_MPDEC_BOOSTFREQ_CPU2        1026000
-#define MSM_MPDEC_BOOSTFREQ_CPU3        1026000
+#define MSM_MPDEC_BOOSTFREQ_CPU2        384000
+#define MSM_MPDEC_BOOSTFREQ_CPU3        384000
 #endif
 
 enum {
@@ -112,7 +112,7 @@ static struct msm_mpdec_tuners {
     .scroff_single_core = true,
     .idle_freq = MSM_MPDEC_IDLE_FREQ,
     .max_cpus = CONFIG_NR_CPUS,
-    .min_cpus = 1,
+    .min_cpus = 2,
 #ifdef CONFIG_MSM_MPDEC_INPUTBOOST_CPUMIN
     .boost_enabled = true,
     .boost_time = MSM_MPDEC_BOOSTTIME,
