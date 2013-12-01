@@ -40,7 +40,7 @@
 #endif
 #include "acpuclock.h"
 
-//#define DEBUG 0
+#define DEBUG 0
 
 #define MPDEC_TAG                       "[MPDEC]: "
 #define MSM_MPDEC_STARTDELAY            15000
