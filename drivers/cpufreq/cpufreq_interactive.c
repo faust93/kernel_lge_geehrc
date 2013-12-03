@@ -39,7 +39,7 @@ static int active_count;
 
 /* Default boostpulse frequency */
 #define DEFAULT_BOOSTPULSE_FREQ 1350000
-#define DEFAULT_BOOSTPULSE_DURATION 1500000
+#define DEFAULT_BOOSTPULSE_DURATION 3000000
 
 struct cpufreq_interactive_cpuinfo {
 	struct timer_list cpu_timer;
@@ -72,11 +72,11 @@ static struct mutex gov_lock;
 static unsigned int hispeed_freq = DEFAULT_BOOSTPULSE_FREQ;
 
 /* Go to hi speed when CPU load at or above this value. */
-#define DEFAULT_GO_HISPEED_LOAD 85
+#define DEFAULT_GO_HISPEED_LOAD 75
 static unsigned long go_hispeed_load = DEFAULT_GO_HISPEED_LOAD;
 
 /* Target load.  Lower values result in higher CPU speeds. */
-#define DEFAULT_TARGET_LOAD 90
+#define DEFAULT_TARGET_LOAD 85
 static unsigned int default_target_loads[] = {DEFAULT_TARGET_LOAD};
 static spinlock_t target_loads_lock;
 static unsigned int *target_loads = default_target_loads;
@@ -91,7 +91,7 @@ static unsigned long min_sample_time = DEFAULT_MIN_SAMPLE_TIME;
 /*
  * The sample rate of the timer used to increase frequency
  */
-#define DEFAULT_TIMER_RATE (20 * USEC_PER_MSEC)
+#define DEFAULT_TIMER_RATE (25 * USEC_PER_MSEC)
 static unsigned long timer_rate = DEFAULT_TIMER_RATE;
 
 /*
