@@ -18,12 +18,9 @@
 #include <linux/cpufreq.h>
 #include <linux/cpu.h>
 #include <linux/jiffies.h>
-#include <linux/kernel_stat.h>
 #include <linux/mutex.h>
 #include <linux/hrtimer.h>
-#include <linux/tick.h>
 #include <linux/ktime.h>
-#include <linux/sched.h>
 #include <linux/input.h>
 #include <linux/workqueue.h>
 #include <linux/slab.h>
@@ -192,29 +189,6 @@ static struct dbs_tuners {
 	.freq_boost_time = DEFAULT_FREQ_BOOST_TIME,
 	.two_phase_freq = 0,
 };
-
-static inline cputime64_t get_cpu_idle_time_jiffy(unsigned int cpu,
-							cputime64_t *wall)
-{
-	u64 idle_time;
-	u64 cur_wall_time;
-	u64 busy_time;
-
-	cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
-
-	busy_time  = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL];
-	busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_NICE];
-
-	idle_time = cur_wall_time - busy_time;
-	if (wall)
-		*wall = jiffies_to_usecs(cur_wall_time);
-
-	return jiffies_to_usecs(idle_time);
-}
 
 static inline cputime64_t get_cpu_iowait_time(unsigned int cpu, cputime64_t *wall)
 {
@@ -679,7 +653,7 @@ static ssize_t store_ignore_nice_load(struct kobject *a, struct attribute *b,
 		struct cpu_dbs_info_s *dbs_info;
 		dbs_info = &per_cpu(id_cpu_dbs_info, j);
 		dbs_info->prev_cpu_idle = get_cpu_idle_time(j,
-						&dbs_info->prev_cpu_wall, 0);
+						&dbs_info->prev_cpu_wall, dbs_tuners_ins.io_is_busy);
 		if (dbs_tuners_ins.ignore_nice)
 			dbs_info->prev_cpu_nice = kcpustat_cpu(j).cpustat[CPUTIME_NICE];
 	}
@@ -1014,7 +988,7 @@ static void dbs_check_cpu(struct cpu_dbs_info_s *this_dbs_info)
 
 		j_dbs_info = &per_cpu(id_cpu_dbs_info, j);
 
-		cur_idle_time = get_cpu_idle_time(j, &cur_wall_time, 0);
+		cur_idle_time = get_cpu_idle_time(j, &cur_wall_time, dbs_tuners_ins.io_is_busy);
 		cur_iowait_time = get_cpu_iowait_time(j, &cur_wall_time);
 
 		wall_time = (unsigned int)
@@ -1693,7 +1667,7 @@ static void dbs_refresh_callback(struct work_struct *work)
 					CPUFREQ_RELATION_L) >= 0);
 			policy->cur = DBS_INPUT_EVENT_MIN_FREQ;
 		this_dbs_info->prev_cpu_idle = get_cpu_idle_time(cpu,
-				&this_dbs_info->prev_cpu_wall, 0);
+				&this_dbs_info->prev_cpu_wall, dbs_tuners_ins.io_is_busy);
 	}
 bail_incorrect_governor:
 	unlock_policy_rwsem_write(cpu);
@@ -1824,7 +1798,7 @@ static int cpufreq_governor_dbs(struct cpufreq_policy *policy,
 			j_dbs_info->cur_policy = policy;
 
 			j_dbs_info->prev_cpu_idle = get_cpu_idle_time(j,
-						&j_dbs_info->prev_cpu_wall, 0);
+						&j_dbs_info->prev_cpu_wall, dbs_tuners_ins.io_is_busy);
 			if (dbs_tuners_ins.ignore_nice) {
 				j_dbs_info->prev_cpu_nice
 					= kcpustat_cpu(j).cpustat[CPUTIME_NICE];

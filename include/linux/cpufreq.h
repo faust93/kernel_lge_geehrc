@@ -16,10 +16,14 @@
 #include <linux/threads.h>
 #include <linux/kobject.h>
 #include <linux/sysfs.h>
+#include <linux/sched.h>
+#include <linux/tick.h>
 #include <linux/completion.h>
 #include <linux/workqueue.h>
 #include <linux/cpumask.h>
+#include <linux/kernel_stat.h>
 #include <asm/div64.h>
+#include <asm/cputime.h>
 
 #define CPUFREQ_NAME_LEN 16
 
@@ -317,7 +321,6 @@ __ATTR(_name, 0644, show_##_name, store_##_name)
 /*********************************************************************
  *                        CPUFREQ 2.6. INTERFACE                     *
  *********************************************************************/
-u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy);
 int cpufreq_get_policy(struct cpufreq_policy *policy, unsigned int cpu);
 int cpufreq_update_policy(unsigned int cpu);
 
@@ -426,5 +429,39 @@ void cpufreq_frequency_table_get_attr(struct cpufreq_frequency_table *table,
 
 void cpufreq_frequency_table_put_attr(unsigned int cpu);
 
+static inline cputime64_t get_cpu_idle_time_jiffy(unsigned int cpu,
+                                                  cputime64_t *wall)
+{
+        u64 idle_time;
+        u64 cur_wall_time;
+        u64 busy_time;
+
+        cur_wall_time = jiffies64_to_cputime64(get_jiffies_64());
+
+        busy_time  = kcpustat_cpu(cpu).cpustat[CPUTIME_USER];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SYSTEM];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_IRQ];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_SOFTIRQ];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_STEAL];
+        busy_time += kcpustat_cpu(cpu).cpustat[CPUTIME_NICE];
+
+        idle_time = cur_wall_time - busy_time;
+        if (wall)
+                *wall = jiffies_to_usecs(cur_wall_time);
+
+        return jiffies_to_usecs(idle_time);
+}
+
+static inline u64 get_cpu_idle_time(unsigned int cpu, u64 *wall, int io_busy)
+{
+        u64 idle_time = get_cpu_idle_time_us(cpu, io_busy ? wall : NULL);
+
+        if (idle_time == -1ULL)
+                return get_cpu_idle_time_jiffy(cpu, wall);
+        else if (!io_busy)
+                idle_time += get_cpu_iowait_time_us(cpu, wall);
+
+        return idle_time;
+}
 
 #endif /* _LINUX_CPUFREQ_H */
