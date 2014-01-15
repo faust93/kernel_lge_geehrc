@@ -128,10 +128,6 @@
 #define PCIE_PWR_EN_PMIC_GPIO 13
 #define PCIE_RST_N_PMIC_MPP 1
 
-#ifdef CONFIG_CPU_FREQ_GOV_INTELLIDEMAND
-int id_set_two_phase_freq(int cpufreq);
-#endif
-
 static bool mako_charger_mode;
 
 static int __init mako_androidboot_mode_arg(char *options)
@@ -1365,6 +1361,17 @@ static struct msm_thermal_data msm_thermal_pdata = {
 	.allowed_low_high = 79,
 	.allowed_low_low = 73,
 	.allowed_low_freq = 1350000,
+#ifdef CONFIG_INTELLI_THERMAL
+	.freq_control_mask = 0xf, 
+	.core_limit_temp_degC = 80,
+	.core_temp_hysteresis_degC = 10, 
+	.core_control_mask = 0xe, 
+#ifdef CONFIG_CPU_OVERCLOCK
+	.limit_temp_degC = 75,
+#else
+	.limit_temp_degC = 60,
+#endif
+#endif
 };
 
 #define MSM_SHARED_RAM_PHYS 0x80000000
@@ -2065,11 +2072,6 @@ out:
 
 static void __init apq8064_mako_init(void)
 {
-
-#ifdef CONFIG_CPU_FREQ_GOV_INTELLIDEMAND
-	id_set_two_phase_freq(1134000);
-#endif
-
 	if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
 		pr_err("meminfo_init() failed!\n");
 	apq8064_common_init();
