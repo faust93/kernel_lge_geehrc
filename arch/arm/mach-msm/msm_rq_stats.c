@@ -118,7 +118,7 @@ static int update_average_load(unsigned int freq, unsigned int cpu)
 	return 0;
 }
 
-static unsigned int report_load_at_max_freq(void)
+unsigned int report_load_at_max_freq(void)
 {
 	int cpu;
 	struct cpu_load_data *pcpu;
@@ -203,7 +203,7 @@ static ssize_t hotplug_disable_show(struct kobject *kobj,
 
 static struct kobj_attribute hotplug_disabled_attr = __ATTR_RO(hotplug_disable);
 
-#ifdef CONFIG_MSM_MPDEC
+//#ifdef CONFIG_MSM_MPDEC
 unsigned int get_rq_info(void)
 {
         unsigned long flags = 0;
@@ -219,7 +219,7 @@ unsigned int get_rq_info(void)
         return rq;
 }
 EXPORT_SYMBOL(get_rq_info);
-#endif
+//#endif
 
 static void def_work_fn(struct work_struct *work)
 {
