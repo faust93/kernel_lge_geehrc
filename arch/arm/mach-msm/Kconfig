@@ -1650,6 +1650,13 @@ config USERSPACE_VOLTAGE_CONTROL
 	help
 	  Userspace Voltage Control
 
+config GPU_VOLTAGE_TABLE
+    bool "Enable GPU Voltage Table via sysfs for adjustements"
+    depends on USERSPACE_VOLTAGE_CONTROL
+    default n
+    help
+	Adreno GPU User Voltage Control 
+
 config INTELLI_PLUG
   bool "Enable intelli-plug cpu hotplug driver"
   default n
