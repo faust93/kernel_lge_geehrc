@@ -2,6 +2,7 @@ ifeq ($(CONFIG_FB_MSM_MDSS),y)
 obj-y += mdss/
 else
 obj-y := msm_fb.o
+obj-$(CONFIG_HAS_EARLYSUSPEND) += lcd_notify.o
 
 obj-$(CONFIG_FB_MSM_LOGO) += logo.o
 obj-$(CONFIG_FB_BACKLIGHT) += msm_fb_bl.o

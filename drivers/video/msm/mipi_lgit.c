@@ -20,6 +20,7 @@
 #include <linux/string.h>
 #include <linux/gpio.h>
 #include <linux/syscore_ops.h>
+#include <linux/lcd_notify.h>
 
 #include "msm_fb.h"
 #include "mipi_dsi.h"
@@ -72,7 +73,9 @@ static int mipi_lgit_lcd_on(struct platform_device *pdev)
 	int ret = 0;
     
 	pr_info("%s started\n", __func__);
-    
+
+	lcd_notifier_call_chain(LCD_EVENT_ON_START, NULL);
+
 	mfd = platform_get_drvdata(pdev);
 	local_mfd = mfd;
 	if (!mfd)
@@ -130,6 +133,8 @@ static int mipi_lgit_lcd_off(struct platform_device *pdev)
     
 	pr_info("%s started\n", __func__);
     
+	lcd_notifier_call_chain(LCD_EVENT_OFF_START, NULL);
+
 	if (mipi_lgit_pdata->bl_pwm_disable)
 		mipi_lgit_pdata->bl_pwm_disable();
     
