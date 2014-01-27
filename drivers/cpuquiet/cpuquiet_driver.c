@@ -45,8 +45,7 @@ static bool screen_off_cap = true;
 struct early_suspend cpuquiet_early_suspender;
 #endif
 static bool screen_off_cap_active = false;
-
-#define CPUQUIET_TAG                       "[CPUQUIET]: "
+static bool is_suspended = false;
 
 static bool log_hotplugging = false;
 #define hotplug_info(msg...) do { \
@@ -60,6 +59,11 @@ static inline unsigned int num_cpu_check(unsigned int num)
 	if (num < 1)
 		return 1;
 	return num;
+}
+
+bool cpq_is_suspended(void)
+{
+    return is_suspended;
 }
 
 unsigned inline int cpq_max_cpus(void)
@@ -80,7 +84,7 @@ static inline void show_status(const char* extra)
     	extra, cpu_online(0), cpu_online(1), cpu_online(2), cpu_online(3));
 }
 
-static int  update_core_config(unsigned int cpunumber, bool up)
+static int update_core_config(unsigned int cpunumber, bool up)
 {
 	int ret = -EINVAL;
 	unsigned int nr_cpus = num_online_cpus();
@@ -105,12 +109,12 @@ static int  update_core_config(unsigned int cpunumber, bool up)
 	return ret;
 }
 
-static int  quiesence_cpu(unsigned int cpunumber)
+static int quiesence_cpu(unsigned int cpunumber)
 {
 	return update_core_config(cpunumber, false);
 }
 
-static int  wake_cpu(unsigned int cpunumber)
+static int wake_cpu(unsigned int cpunumber)
 {
 	return update_core_config(cpunumber, true);
 }
@@ -121,7 +125,7 @@ static struct cpuquiet_driver cpuquiet_driver = {
 	.wake_cpu               = wake_cpu,
 };
 
-static void  min_max_constraints_workfunc(struct work_struct *work)
+static void min_max_constraints_workfunc(struct work_struct *work)
 {
 	int count = -1;
 	bool up = false;
@@ -272,7 +276,7 @@ static ssize_t store_manual_hotplug(struct cpuquiet_attribute *cattr,
 	return count;
 }
 
-static void  cpu_core_state_workfunc(struct work_struct *work)
+static void cpu_core_state_workfunc(struct work_struct *work)
 {
 	int i = 0;
 	int cpu = 0;
@@ -445,7 +449,7 @@ static int cpq_auto_sysfs(void)
 		return -ENOMEM;
 
 	err = cpuquiet_kobject_init(auto_sysfs_kobject, &ktype_sysfs,
-				"cpuquiet");
+				"cpuquiet_driver");
 
 	if (err)
 		kfree(auto_sysfs_kobject);
@@ -456,6 +460,7 @@ static int cpq_auto_sysfs(void)
 #ifdef CONFIG_HAS_EARLYSUSPEND
 static void cpuquiet_early_suspend(struct early_suspend *h)
 {
+	is_suspended = true;
 	if (screen_off_cap){
 		pr_info(CPUQUIET_TAG "%s: limit to %d cores\n", __func__, screen_off_max_cpus);
 		screen_off_cap_active = true;
@@ -465,10 +470,11 @@ static void cpuquiet_early_suspend(struct early_suspend *h)
 
 static void cpuquiet_late_resume(struct early_suspend *h)
 {
+	is_suspended = false;	
 	if (screen_off_cap){
 		pr_info(CPUQUIET_TAG "%s: release limit to %d cores\n", __func__, screen_off_max_cpus);
 		screen_off_cap_active = false;
-		max_cpus_change();		
+		max_cpus_change();
 	}
 }
 #endif
